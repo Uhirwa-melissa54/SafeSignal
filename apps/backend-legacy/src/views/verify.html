@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SafeSignal Verification</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f4f4f9;
+      color: #333;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      max-width: 400px;
+      text-align: center;
+    }
+    h1 {
+      color: #2c3e50;
+      margin-bottom: 20px;
+    }
+    p {
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+    .btn {
+      display: inline-block;
+      background-color: #3498db;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
+      width: 100%;
+      font-size: 16px;
+    }
+    .btn:hover {
+      background-color: #2980b9;
+    }
+    .instructions {
+      display: none;
+      text-align: left;
+      margin-top: 20px;
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      border-left: 4px solid #3498db;
+    }
+    .instructions code {
+      background: #e9ecef;
+      padding: 2px 4px;
+      border-radius: 4px;
+      font-family: monospace;
+      color: #e74c3c;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container" id="main-content">
+    <h1>Welcome to SafeSignal</h1>
+    <p>SafeSignal blocks harmful websites such as adult content, gambling, violence, malware and phishing.</p>
+    <p>Your parent wants to enable this protection on your device.</p>
+    
+    <button class="btn" id="continue-btn">Press Continue to enable protection</button>
+
+    <div class="instructions" id="instructions">
+      <h3>Installation Instructions</h3>
+      <p>Please follow these steps to enable SafeSignal on your Android device:</p>
+      <ol>
+        <li>Open <b>Settings</b></li>
+        <li>Go to <b>Network & Internet</b> or <b>Connections</b></li>
+        <li>Select <b>Private DNS</b></li>
+        <li>Choose <b>Private DNS provider hostname</b></li>
+        <li>Enter: <code>dns.safesignal.local</code></li>
+        <li>Save changes.</li>
+      </ol>
+      <p><i>Your device identifier is: <span id="child-id"></span></i></p>
+    </div>
+  </div>
+
+  <script>
+    const continueBtn = document.getElementById('continue-btn');
+    const instructions = document.getElementById('instructions');
+    const childIdSpan = document.getElementById('child-id');
+    
+    // Extract token from URL path
+    const pathParts = window.location.pathname.split('/');
+    const token = pathParts[pathParts.length - 1];
+
+    continueBtn.addEventListener('click', async () => {
+      try {
+        continueBtn.disabled = true;
+        continueBtn.innerText = 'Verifying...';
+
+        const response = await fetch('/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          continueBtn.style.display = 'none';
+          document.querySelector('p').innerText = 'Protection successfully enabled!';
+          childIdSpan.innerText = data.dnsIdentifier;
+          instructions.style.display = 'block';
+        } else {
+          alert('Verification failed: ' + data.error);
+          continueBtn.disabled = false;
+          continueBtn.innerText = 'Press Continue to enable protection';
+        }
+      } catch (err) {
+        alert('An error occurred. Please try again.');
+        continueBtn.disabled = false;
+        continueBtn.innerText = 'Press Continue to enable protection';
+      }
+    });
+  </script>
+</body>
+</html>

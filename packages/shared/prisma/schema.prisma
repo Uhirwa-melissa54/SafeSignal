@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Parent {
+  id          String   @id @default(uuid())
+  phoneNumber String   @unique
+  createdAt   DateTime @default(now())
+  children    Child[]
+}
+
+model Child {
+  id                String   @id @default(uuid())
+  parentId          String
+  childName         String
+  phoneNumber       String
+  dnsIdentifier     String   @unique
+  verified          Boolean  @default(false)
+  protectionEnabled Boolean  @default(true)
+  createdAt         DateTime @default(now())
+
+  parent        Parent         @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  blockedEvents BlockedEvent[]
+}
+
+model VerificationToken {
+  id         String   @id @default(uuid())
+  token      String   @unique
+  childPhone String
+  parentId   String
+  childName  String   @default("")
+  expiresAt  DateTime
+  used       Boolean  @default(false)
+}
+
+model BlockedEvent {
+  id        String   @id @default(uuid())
+  childId   String
+  domain    String
+  category  String
+  timestamp DateTime @default(now())
+
+  child Child @relation(fields: [childId], references: [id], onDelete: Cascade)
+}
