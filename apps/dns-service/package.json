@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node dist/server.js",
+    "build": "tsc",
     "test": "jest"
   },
   "keywords": [],
@@ -12,7 +13,6 @@
   "license": "ISC",
   "dependencies": {
     "@prisma/client": "^5.0.0",
-    "@safesignal/shared": "file:../../packages/shared",
     "axios": "^1.7.9",
     "dns2": "^2.1.0",
     "dotenv": "^16.4.7"

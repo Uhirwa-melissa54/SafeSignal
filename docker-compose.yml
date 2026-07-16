@@ -5,7 +5,7 @@ services:
     image: postgres:15-alpine
     container_name: safesignal_db
     environment:
-      POSTGRES_USER: root
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
       POSTGRES_DB: safesignal
     ports:
@@ -14,40 +14,11 @@ services:
       - pgdata:/var/lib/postgresql/data
     restart: unless-stopped
 
-  backend:
-    build:
-      context: .
-      dockerfile: backend.Dockerfile
-    container_name: safesignal_backend
-    depends_on:
-      - postgres
-    environment:
-      - DATABASE_URL=postgresql://root:password@postgres:5432/safesignal?schema=public
-      - PORT=3000
-      - TWILIO_ACCOUNT_SID=AC_dummy
-      - TWILIO_AUTH_TOKEN=dummy
-      - TWILIO_WHATSAPP_NUMBER=whatsapp:+14155238886
-      - ATS_USERNAME=dummy
-      - ATS_API_KEY=dummy
-      - FRONTEND_URL=http://localhost:3000
+  redis:
+    image: redis:7-alpine
+    container_name: safesignal_redis
     ports:
-      - "3000:3000"
-    restart: unless-stopped
-
-  dns:
-    build:
-      context: .
-      dockerfile: dns.Dockerfile
-    container_name: safesignal_dns
-    depends_on:
-      - postgres
-      - backend
-    environment:
-      - DATABASE_URL=postgresql://root:password@postgres:5432/safesignal?schema=public
-      - BACKEND_URL=http://backend:3000
-    ports:
-      - "53:53/udp"
-      - "53:53/tcp"
+      - "6379:6379"
     restart: unless-stopped
 
 volumes:

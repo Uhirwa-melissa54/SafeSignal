@@ -24,27 +24,51 @@ export class SmsService {
    * @param to   - Child phone number (e.g. +27781234567)
    * @param token - Verification token
    */
-  async sendVerificationSms(to: string, token: string): Promise<void> {
-    const frontendUrl = this.config.get<string>('FRONTEND_URL', 'http://localhost:3000');
-    const verifyLink = `${frontendUrl}/verify/${token}`;
+ async sendVerificationSms(to: string, token: string): Promise<void> {
+  const frontendUrl = this.config.get<string>(
+    'FRONTEND_URL',
+    'http://localhost:3000',
+  );
 
-    const message = [
-      'SafeSignal',
-      '',
-      'Your parent wants to protect this phone.',
-      'Tap the link below to enable protection:',
-      '',
-      verifyLink,
-      '',
-      'This link expires in 30 minutes.',
-    ].join('\n');
+  const verifyLink = `${frontendUrl}/verify/${token}`;
 
-    try {
-      await this.sms.send({ to: [to], message });
-      this.logger.log(`Verification SMS sent to ${to}`);
-    } catch (err: any) {
-      this.logger.error(`Failed to send SMS to ${to}: ${err.message}`);
-      // Don't throw — the parent was already notified via WhatsApp
+  const message = [
+    'SafeSignal',
+    '',
+    'Your parent wants to protect this phone.',
+    'Tap the link below to enable protection:',
+    '',
+    verifyLink,
+    '',
+    'This link expires in 30 minutes.',
+  ].join('\n');
+
+  try {
+    const response = await this.sms.send({
+      to: [to],
+      message,
+    });
+
+    // Log the complete Africa's Talking response
+    console.log(
+      'Africa\'s Talking Response:\n',
+      JSON.stringify(response, null, 2),
+    );
+
+    this.logger.log(`Verification SMS sent to ${to}`);
+  } catch (err: any) {
+    this.logger.error(`Failed to send SMS to ${to}: ${err.message}`);
+
+    if (err.response) {
+      console.error(
+        'Africa\'s Talking Error Response:\n',
+        JSON.stringify(err.response.data, null, 2),
+      );
     }
+
+    console.error(err);
+
+    // Don't throw — the parent was already notified via WhatsApp
   }
+}
 }
