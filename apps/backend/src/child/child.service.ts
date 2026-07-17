@@ -1,6 +1,7 @@
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { SmsService } from '../sms/sms.service';
+import { WhatsappService } from '../whatsapp/whatsapp.service';
 import crypto from 'crypto';
 
 @Injectable()
@@ -10,6 +11,8 @@ export class ChildService {
   constructor(
     private prisma: PrismaService,
     private sms: SmsService,
+    @Inject(forwardRef(() => WhatsappService))
+    private whatsapp: WhatsappService,
   ) {}
 
   async addChild(parentId: string, childName: string, childPhone: string) {
@@ -34,10 +37,28 @@ export class ChildService {
       },
     });
 
-    this.logger.log(`Generated verification token ${token} for child ${childName} (${childPhone})`);
+    this.logger.log(`Verification token generated for child ${childName} (${childPhone})`);
 
-    // 4. Send SMS to child
-    await this.sms.sendVerificationSms(childPhone, token);
+    // 4. Build the verification URL once — shared by both channels
+    const verificationUrl = `${process.env.FRONTEND_URL}/verify/${token}`;
+
+    // 5. SMS channel — independent try/catch so a failure never blocks WhatsApp
+    try {
+      await this.sms.sendVerificationSms(childPhone, token);
+      this.logger.log(`SMS sent successfully to ${childPhone}`);
+    } catch (err: any) {
+      this.logger.error(`SMS failed to ${childPhone}: ${err.message}`);
+    }
+
+    // 6. WhatsApp channel — independent try/catch so a failure never blocks SMS
+    try {
+      await this.whatsapp.sendVerificationMessage(childPhone, verificationUrl);
+      this.logger.log(`WhatsApp sent successfully to ${childPhone}`);
+    } catch (err: any) {
+      this.logger.error(`WhatsApp failed to ${childPhone}: ${err.message}`);
+    }
+
+    this.logger.log(`Verification process completed for child ${childName} (${childPhone})`);
 
     return { success: true, token };
   }

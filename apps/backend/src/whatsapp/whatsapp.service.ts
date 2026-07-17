@@ -84,4 +84,43 @@ export class WhatsappService {
       'HELP – Show this menu',
     ].join('\n');
   }
+
+  /**
+   * Sends a WhatsApp verification link to a child's phone number.
+   * Reuses the existing Twilio client and TWILIO_WHATSAPP_NUMBER sender.
+   * Does NOT throw — all errors are caught and logged internally.
+   *
+   * @param phoneNumber   - Child phone number (e.g. +250781261090 or whatsapp:+250781261090)
+   * @param verificationUrl - Full verification URL (e.g. https://app.example.com/verify/<token>)
+   */
+  async sendVerificationMessage(phoneNumber: string, verificationUrl: string): Promise<void> {
+    // Guard: reject empty / nullish inputs before touching the Twilio client
+    if (!phoneNumber || !verificationUrl) {
+      this.logger.error(
+        `sendVerificationMessage called with invalid input — phoneNumber: "${phoneNumber}", verificationUrl: "${verificationUrl}"`,
+      );
+      return;
+    }
+
+    // Normalise destination: avoid double-prefixing
+    const to = phoneNumber.startsWith('whatsapp:')
+      ? phoneNumber
+      : `whatsapp:+${phoneNumber.replace(/^\+/, '')}`;
+
+    const body = [
+      '🛡️ SafeSignal',
+      'Your parent wants to protect this phone.',
+      'Tap the link below to enable protection:',
+      verificationUrl,
+      'This link expires in 30 minutes.',
+    ].join('\n');
+
+    try {
+      await this.client.messages.create({ body, from: this.from, to });
+      this.logger.log(`WhatsApp sent successfully to ${to}`);
+    } catch (err: any) {
+      this.logger.error(`WhatsApp failed to ${to}: ${err.message}`);
+      // Intentionally not re-throwing — one channel failure must never block the other
+    }
+  }
 }
